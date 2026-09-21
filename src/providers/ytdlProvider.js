@@ -4,6 +4,7 @@ import { PYTHON_CMD } from '../config.js';
 import { ProviderError, UnsupportedSourceError } from '../errors.js';
 import { logger } from '../logger.js';
 import { createFormatPlans } from '../services/formatPlanService.js';
+import { getCommonYtdlpArgs } from '../services/cookieService.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,8 +43,8 @@ function bestThumbnail(info) {
  */
 function runYtdlp(args, timeoutMs = 30_000) {
   return new Promise((resolve, reject) => {
-    // Full command: python3 -m yt_dlp [args...]
-    const proc = spawn(PYTHON_CMD, ['-m', 'yt_dlp', ...args], {
+    const fullArgs = ['-m', 'yt_dlp', ...getCommonYtdlpArgs(), ...args];
+    const proc = spawn(PYTHON_CMD, fullArgs, {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false, // never use shell
     });
@@ -66,7 +67,7 @@ function runYtdlp(args, timeoutMs = 30_000) {
       } else {
         // Extract a user-safe error message from stderr
         const safeMsg = extractSafeError(stderr);
-        logger.warn('yt-dlp non-zero exit', { code, safeMsg });
+        logger.warn('yt-dlp non-zero exit', { code, safeMsg, rawStderr: stderr.slice(0, 300) });
         reject(new ProviderError(safeMsg));
       }
     });
@@ -103,7 +104,7 @@ function extractSafeError(stderr) {
   if (/HTTP Error 429|Too Many Requests/i.test(stderr))
     return 'YouTube rate-limited the request. Please wait a moment and try again.';
   if (/Sign in|bot|cookies/i.test(stderr))
-    return 'YouTube requires verification for this video. It cannot be processed.';
+    return 'YouTube requires verification for datacenter IPs. Set your YOUTUBE_COOKIES environment variable in Render dashboard.';
   if (/copyright|removed/i.test(stderr))
     return 'This video has been removed or blocked due to copyright.';
 

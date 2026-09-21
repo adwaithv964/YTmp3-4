@@ -69,6 +69,12 @@ export const TOKEN_SECRET = process.env.DOWNLOAD_TOKEN_SECRET || randomBytes(32)
 export const PYTHON_CMD = process.env.PYTHON_CMD || 'python3';
 export const LOG_LEVEL  = process.env.LOG_LEVEL  || 'info';
 
+// ─── Cloud & YouTube Anti-Bot Options ─────────────────────────────────────────
+export const COOKIES_FILE          = process.env.COOKIES_FILE || '';
+export const YOUTUBE_COOKIES       = process.env.YOUTUBE_COOKIES || '';
+export const YTDLP_PROXY           = process.env.YTDLP_PROXY || process.env.HTTP_PROXY || '';
+export const YTDLP_EXTRACTOR_ARGS  = process.env.YTDLP_EXTRACTOR_ARGS || 'youtube:player_client=android,web';
+
 // ─── Private IP regex used by SSRF protection ─────────────────────────────────
 // Covers loopback, RFC-1918, link-local, CGNAT, documentation ranges.
 export const PRIVATE_IP_RE = /^(127\.|10\.|192\.168\.|169\.254\.|0\.|::1$|fc[0-9a-f]{2}:|fd[0-9a-f]{2}:|fe80:|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|172\.(1[6-9]|2\d|3[01])\.)/i;

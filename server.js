@@ -10,6 +10,7 @@ import mediaRoutes      from './src/routes/mediaRoutes.js';
 import { startCleanup } from './src/services/cleanupService.js';
 import { checkAvailability } from './src/providers/ytdlProvider.js';
 import { recoverOrphanedJobs } from './src/services/jobService.js';
+import { initCookies } from './src/services/cookieService.js';
 import { logger } from './src/logger.js';
 
 import { apiLimiter }    from './src/middleware/rateLimiter.js';
@@ -106,6 +107,9 @@ app.use(errorHandler);
 
 // ─── Startup ──────────────────────────────────────────────────────────────────
 async function start() {
+  // Initialize YouTube cookies if provided via environment
+  initCookies();
+
   // Verify yt-dlp is reachable before accepting requests
   try {
     await checkAvailability();

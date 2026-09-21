@@ -18,3 +18,5 @@ services:
         value: "15"
       - key: LOG_LEVEL
         value: info
+      - key: YTDLP_EXTRACTOR_ARGS
+        value: "youtube:player_client=android,web"
