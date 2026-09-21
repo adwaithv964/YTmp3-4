@@ -1,10 +1,64 @@
 import { spawn } from 'node:child_process';
-import { PYTHON_CMD } from '../config.js';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import { PYTHON_CMD, DATA_DIR } from '../config.js';
 
 import { ProviderError, UnsupportedSourceError } from '../errors.js';
 import { logger } from '../logger.js';
 import { createFormatPlans } from '../services/formatPlanService.js';
 import { getCommonYtdlpArgs } from '../services/cookieService.js';
+
+// ─── Info-JSON cache ──────────────────────────────────────────────────────────
+// After a successful --dump-json call, we save the raw JSON to disk so the
+// download phase can pass --load-info-json and skip re-fetching YouTube's API
+// entirely (avoiding 429s without routing large video bytes through the proxy).
+
+const INFO_CACHE_DIR = path.join(DATA_DIR, 'info-cache');
+const INFO_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours — signed CDN URLs last ~6 h
+
+/**
+ * Save raw yt-dlp JSON to the info-cache directory.
+ * Silently ignores errors (cache write failure must never break metadata).
+ */
+async function saveInfoCache(videoId, raw) {
+  try {
+    await fsp.mkdir(INFO_CACHE_DIR, { recursive: true });
+    // Only store alphanumeric IDs — never write attacker-controlled filenames
+    const safeId = videoId.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeId) return;
+    const filePath = path.join(INFO_CACHE_DIR, `${safeId}.json`);
+    await fsp.writeFile(filePath, raw, 'utf8');
+    logger.debug('Info-JSON cached', { videoId: safeId, path: filePath });
+  } catch (e) {
+    logger.warn('Failed to write info-cache (non-fatal)', { error: e.message });
+  }
+}
+
+/**
+ * Returns the path to a cached info-JSON file if it exists and is fresh,
+ * otherwise returns null.
+ *
+ * Called by processingService to decide whether to use --load-info-json.
+ *
+ * @param {string} videoId
+ * @returns {Promise<string|null>}
+ */
+export async function getInfoCachePath(videoId) {
+  try {
+    const safeId = videoId.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!safeId) return null;
+    const filePath = path.join(INFO_CACHE_DIR, `${safeId}.json`);
+    const stat = await fsp.stat(filePath);
+    if (Date.now() - stat.mtimeMs > INFO_CACHE_TTL_MS) {
+      // Stale — delete and skip
+      await fsp.unlink(filePath).catch(() => {});
+      return null;
+    }
+    return filePath;
+  } catch {
+    return null; // file does not exist
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -290,6 +344,11 @@ export async function getMetadata(urlString) {
     info = JSON.parse(raw);
   } catch {
     throw new ProviderError('Could not parse video information. Please try again.');
+  }
+
+  // Cache the raw JSON for reuse by the download phase (--load-info-json)
+  if (info.id) {
+    saveInfoCache(info.id, raw); // fire-and-forget
   }
 
   // Reject live streams — they cannot be reliably downloaded

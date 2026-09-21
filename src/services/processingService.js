@@ -10,7 +10,25 @@ import {
 import { jobDir, getFileSizeBytes, removeFile } from './storageService.js';
 import { validateMediaFile } from './mediaValidationService.js';
 import { getDownloadYtdlpArgs } from './cookieService.js';
+import { getInfoCachePath } from '../providers/ytdlProvider.js';
 
+// ─── YouTube ID extraction ─────────────────────────────────────────────────────
+// Parses the 11-character video ID from any YouTube URL format.
+// Returns null if not a recognized YouTube URL.
+function extractYouTubeId(urlString) {
+  try {
+    const url = new URL(urlString);
+    // youtu.be/VIDEOID
+    if (url.hostname === 'youtu.be') return url.pathname.slice(1).split('/')[0] || null;
+    // youtube.com/watch?v=VIDEOID
+    const v = url.searchParams.get('v');
+    if (v) return v;
+    // youtube.com/shorts/VIDEOID or /embed/VIDEOID
+    const m = url.pathname.match(/\/(?:shorts|embed|v)\/([a-zA-Z0-9_-]{11})/);
+    if (m) return m[1];
+  } catch { /* invalid URL */ }
+  return null;
+}
 
 // ─── Active process registry ──────────────────────────────────────────────────
 // Maps jobId → ChildProcess so we can kill on cancellation.
@@ -72,8 +90,12 @@ function buildVideoFormatArg(quality) {
  * Build the complete yt-dlp argument array for a given job manifest.
  * SECURITY: urlString is the last argument and always a separate array element.
  * No user-supplied value is ever concatenated into a string passed to the shell.
+ *
+ * @param {Object} manifest
+ * @param {string} outputPath
+ * @param {string|null} infoCachePath  - Path to --load-info-json file (or null)
  */
-function buildArgs(manifest, outputPath) {
+function buildArgs(manifest, outputPath, infoCachePath = null) {
   const { format, quality, bitrate, urlString, formatPlan } = manifest;
   const args = [
     '-m', 'yt_dlp',
@@ -93,6 +115,13 @@ function buildArgs(manifest, outputPath) {
   // Tell yt-dlp exactly where FFmpeg is (survives terminal PATH changes)
   if (process.env.FFMPEG_LOCATION) {
     args.push('--ffmpeg-location', process.env.FFMPEG_LOCATION);
+  }
+
+  // If we have a fresh info-JSON from the metadata call, load it so yt-dlp
+  // skips re-fetching YouTube's API entirely (no 429, no proxy bandwidth used).
+  // The URL is still passed as a positional argument for safety/fallback.
+  if (infoCachePath) {
+    args.push('--load-info-json', infoCachePath);
   }
 
   if (format === 'mp3') {
@@ -189,7 +218,18 @@ export async function processJob(jobId) {
   const dir        = jobDir(jobId);
   const outputPath = path.join(dir, manifest.outputFile);
 
-  const args = buildArgs(manifest, outputPath);
+  // Check for a freshly-cached info-JSON (written during the /metadata call).
+  // If present, yt-dlp will use it instead of re-fetching the YouTube page,
+  // which eliminates the API call that would otherwise trigger a 429.
+  const videoId = extractYouTubeId(manifest.urlString);
+  const infoCachePath = videoId ? await getInfoCachePath(videoId) : null;
+  if (infoCachePath) {
+    logger.info('Using cached info-JSON for download (no YouTube API re-fetch)', { jobId, videoId });
+  } else {
+    logger.info('No info-cache available — yt-dlp will re-fetch YouTube page', { jobId });
+  }
+
+  const args = buildArgs(manifest, outputPath, infoCachePath);
   logger.info('Spawning yt-dlp', { jobId, format: manifest.format, quality: manifest.quality });
 
   // ── Run yt-dlp ─────────────────────────────────────────────────────────────
