@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: ytmp34
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DOWNLOAD_TOKEN_SECRET
+        generateValue: true
+      - key: MAX_OUTPUT_BYTES
+        value: "314572800" # 300 MB limit suitable for 512MB RAM
+      - key: MAX_JOB_SECONDS
+        value: "300"
+      - key: JOB_EXPIRY_MINUTES
+        value: "15"
+      - key: LOG_LEVEL
+        value: info

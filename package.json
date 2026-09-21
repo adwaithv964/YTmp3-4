@@ -6,8 +6,8 @@
   "description": "YTmp3/4 — YouTube media downloader and converter. Privacy-first, ephemeral artifacts.",
   "main": "server.js",
   "scripts": {
-    "start": "node --env-file=.env server.js",
-    "dev":   "node --env-file=.env --watch --watch-path=src --watch-path=public --watch-path=server.js server.js"
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev":   "node --env-file-if-exists=.env --watch --watch-path=src --watch-path=public --watch-path=server.js server.js"
   },
   "engines": {
     "node": ">=22"
