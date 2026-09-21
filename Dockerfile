@@ -12,9 +12,9 @@ RUN apt-get update && \
       python3-venv && \
     rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp into a virtual environment (avoids PEP 668 conflicts on bookworm)
+# Install yt-dlp into a virtual environment with default optional dependencies
 RUN python3 -m venv /opt/ytdlp-venv && \
-    /opt/ytdlp-venv/bin/pip install --no-cache-dir yt-dlp && \
+    /opt/ytdlp-venv/bin/pip install --no-cache-dir "yt-dlp[default]" && \
     ln -s /opt/ytdlp-venv/bin/python3 /usr/local/bin/python3-ytdlp
 
 # ─── App ─────────────────────────────────────────────────────────────────────

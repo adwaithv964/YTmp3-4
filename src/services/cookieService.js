@@ -106,12 +106,31 @@ export function initCookies() {
     }
   }
 
-  // 2. Render Secret File (/etc/secrets/cookies.txt)
-  const renderSecretPath = '/etc/secrets/cookies.txt';
-  if (fs.existsSync(renderSecretPath)) {
-    _resolvedCookiePath = renderSecretPath;
-    logger.info('Using YouTube cookies from Render Secret File', { path: renderSecretPath });
-    return _resolvedCookiePath;
+  // 2. Render Secret Files (check /etc/secrets directory for any cookie file)
+  const secretsDir = '/etc/secrets';
+  if (fs.existsSync(secretsDir)) {
+    try {
+      const entries = fs.readdirSync(secretsDir);
+      for (const entry of entries) {
+        const secretPath = path.join(secretsDir, entry);
+        if (!fs.statSync(secretPath).isFile()) continue;
+
+        const content = fs.readFileSync(secretPath, 'utf8');
+        if (content.includes('youtube.com') || content.includes('# Netscape') || entry.toLowerCase().includes('cookie')) {
+          const sanitized = sanitizeNetscapeCookies(content);
+          if (sanitized) {
+            const destPath = path.join(DATA_DIR, 'cookies.txt');
+            if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+            fs.writeFileSync(destPath, sanitized, { mode: 0o600, encoding: 'utf8' });
+            _resolvedCookiePath = destPath;
+            logger.info('Using YouTube cookies from Render Secret File', { file: entry, path: destPath });
+            return _resolvedCookiePath;
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn('Failed scanning /etc/secrets directory', { error: err.message });
+    }
   }
 
   // 3. YOUTUBE_COOKIES environment variable (raw text or base64)
