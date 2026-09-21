@@ -5,6 +5,8 @@
 
 # Runtime data (jobs, artifacts)
 data/
+*cookies*.txt
+cookies.txt
 
 # Node
 node_modules/

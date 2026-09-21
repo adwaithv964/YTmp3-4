@@ -87,6 +87,8 @@ function runYtdlp(args, timeoutMs = 30_000) {
 function extractSafeError(stderr) {
   if (!stderr) return 'The media provider returned an error.';
 
+  if (/invalid Netscape format|cookiejar bug|CookieLoadError/i.test(stderr))
+    return 'The provided YouTube cookies are invalid or corrupted. Please check your cookies formatting or re-export.';
   if (/Video unavailable|This video is not available/i.test(stderr))
     return 'This video is unavailable.';
   if (/Private video/i.test(stderr))

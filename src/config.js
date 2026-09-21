@@ -73,7 +73,7 @@ export const LOG_LEVEL  = process.env.LOG_LEVEL  || 'info';
 export const COOKIES_FILE          = process.env.COOKIES_FILE || '';
 export const YOUTUBE_COOKIES       = process.env.YOUTUBE_COOKIES || '';
 export const YTDLP_PROXY           = process.env.YTDLP_PROXY || process.env.HTTP_PROXY || '';
-export const YTDLP_EXTRACTOR_ARGS  = process.env.YTDLP_EXTRACTOR_ARGS || 'youtube:player_client=android,web';
+export const YTDLP_EXTRACTOR_ARGS  = process.env.YTDLP_EXTRACTOR_ARGS || '';
 
 // ─── Private IP regex used by SSRF protection ─────────────────────────────────
 // Covers loopback, RFC-1918, link-local, CGNAT, documentation ranges.
