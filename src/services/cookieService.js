@@ -190,3 +190,29 @@ export function getCommonYtdlpArgs() {
   return args;
 }
 
+/**
+ * Args for actual video/audio DOWNLOADS — same as getCommonYtdlpArgs() but
+ * intentionally EXCLUDES the proxy so that multi-hundred-MB video bytes flow
+ * directly from YouTube's CDN instead of eating Webshare's 1 GB/month quota.
+ *
+ * The proxy is only needed to bypass YouTube's 429 rate-limit on metadata API
+ * calls (--dump-json). Once yt-dlp has the signed CDN URLs, downloading those
+ * bytes directly never triggers a 429.
+ */
+export function getDownloadYtdlpArgs() {
+  const args = [];
+
+  const cookiePath = initCookies();
+  if (cookiePath) {
+    args.push('--cookies', cookiePath);
+  }
+
+  if (YTDLP_EXTRACTOR_ARGS) {
+    args.push('--extractor-args', YTDLP_EXTRACTOR_ARGS);
+  }
+
+  // NOTE: proxy intentionally omitted — video CDN downloads must be direct.
+
+  return args;
+}
+

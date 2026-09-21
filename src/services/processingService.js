@@ -9,7 +9,8 @@ import {
 } from './jobService.js';
 import { jobDir, getFileSizeBytes, removeFile } from './storageService.js';
 import { validateMediaFile } from './mediaValidationService.js';
-import { getCommonYtdlpArgs } from './cookieService.js';
+import { getDownloadYtdlpArgs } from './cookieService.js';
+
 
 // ─── Active process registry ──────────────────────────────────────────────────
 // Maps jobId → ChildProcess so we can kill on cancellation.
@@ -76,7 +77,8 @@ function buildArgs(manifest, outputPath) {
   const { format, quality, bitrate, urlString, formatPlan } = manifest;
   const args = [
     '-m', 'yt_dlp',
-    ...getCommonYtdlpArgs(),
+    ...getDownloadYtdlpArgs(),
+
     '--no-playlist',
     '--socket-timeout', '30',
     '--retries', '10',
