@@ -1,0 +1,21 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Runtime data (jobs, artifacts)
+data/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Vercel / Render
+.vercel/

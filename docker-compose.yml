@@ -1,0 +1,19 @@
+services:
+  ytmp34:
+    build: .
+    container_name: ytmp34
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      JOB_EXPIRY_MINUTES: 60
+      MAX_JOB_SECONDS: 300
+      MAX_OUTPUT_BYTES: 524288000
+      PYTHON_CMD: /opt/ytdlp-venv/bin/python3
+      # Set this in your .env file — never commit secrets
+      DOWNLOAD_TOKEN_SECRET: ${DOWNLOAD_TOKEN_SECRET}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
